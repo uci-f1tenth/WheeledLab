@@ -19,6 +19,7 @@ from wheeledlab_assets import MUSHR_SUS_2WD_CFG
 from wheeledlab_tasks.common import BlindObsCfg, MushrRWDActionCfg
 
 from .mdp import reset_root_state_along_track
+from pathlib import Path
 
 ##############################
 ###### COMMON CONSTANTS ######
@@ -35,12 +36,14 @@ MAX_SPEED = 3.0               # (m/s) For action and reward
 ###### SCENE ######
 ###################
 
+
 @configclass
 class DriftTerrainImporterCfg(TerrainImporterCfg):
-
     height = 0.0
     prim_path = "/World/ground"
-    terrain_type="plane"
+    #terrain_type="plane"
+    terrain_type="usd"
+    usd_path = str(Path(__file__).resolve().parents[4]/ "source/wheeledlab_assets/data/Terrains/IsaacRacing.usdc")
     collision_group = -1
     physics_material=sim_utils.RigidBodyMaterialCfg( # Material for carpet
         friction_combine_mode="multiply",
@@ -77,16 +80,14 @@ class MushrDriftSceneCfg(InteractiveSceneCfg):
 
 @configclass
 class DriftEventsCfg:
-    # on startup
-
     reset_root_state = EventTerm(
         func=reset_root_state_along_track,
         params={
             "track_radius": LINE_RADIUS,
             "track_straight_dist": STRAIGHT,
-            "num_points": 20,
-            "pos_noise": 0.5,
-            "yaw_noise": 1.0,
+            "num_points": 1, # 20 to 1
+            "pos_noise": 0, # 0.5 to 0
+            "yaw_noise": 0, # 1.0 to 0
             "asset_cfg": SceneEntityCfg("robot"),
         },
         mode="reset",
@@ -292,11 +293,11 @@ class DriftRewardsCfg:
         }
     )
 
-    term_pens = RewTerm(
-        func = mdp.rewards.is_terminated_term,
-        params={"term_keys": ["out_of_bounds"]},
-        weight = -5000.,
-    )
+    # term_pens = RewTerm(
+    #     func = mdp.rewards.is_terminated_term,
+    #     params={"term_keys": ["out_of_bounds"]},
+    #     weight = -5000.,
+    # )
 
 
 ########################
@@ -369,7 +370,7 @@ class DriftTerminationsCfg:
 class MushrDriftRLEnvCfg(ManagerBasedRLEnvCfg):
 
     seed: int = 42
-    num_envs: int = 1024
+    num_envs: int = 1 # Sets how many instances train in parallel
     env_spacing: float = 0.
 
     # Basic Settings

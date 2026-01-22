@@ -147,6 +147,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg): # TODO: Add SB3 config suppo
             actions = policy(obs)
             # env stepping
             obs, _, _, _ = env.step(actions)
+
         # save data
         data['observations'].append(obs)
         data['actions'].append(actions)

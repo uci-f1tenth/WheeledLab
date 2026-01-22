@@ -437,7 +437,7 @@ class ElevationCommandCfg:
 @configclass
 class MushrElevationRLEnvCfg(ManagerBasedRLEnvCfg):
 
-    seed: int = 42
+    seed: int = 10 #42
     num_envs: int = 512
     env_spacing: float = 0.
 

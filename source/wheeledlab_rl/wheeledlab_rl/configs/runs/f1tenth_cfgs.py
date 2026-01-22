@@ -6,7 +6,7 @@ from wheeledlab_rl.configs import (
 @configclass
 class F1TENTH_DRIFT_CONFIG(RslRlRunConfig):
     env_setup = EnvSetup(
-        num_envs=1024,
+        num_envs=1, # Changed from to 1024 to 1, for testing general stuff
         task_name="Isaac-F1TenthDriftRL-v0"
     )
     train = RLTrainConfig(

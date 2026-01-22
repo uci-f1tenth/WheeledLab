@@ -71,6 +71,7 @@ class OnPolicyRunner(runners.OnPolicyRunner):
                 for i in range(self.num_steps_per_env):
                     actions = self.alg.act(obs, critic_obs)
                     obs, rewards, dones, infos = self.env.step(actions)
+
                     if actions.isnan().any():
                         raise ValueError("NaN in actions")
                     obs = self.obs_normalizer(obs)

@@ -22,10 +22,10 @@ class reset_root_state_along_track(ManagerTermBase):
         Raises:
             ValueError: If the asset is not a RigidObject or an Articulation.
         """
-        super().__init__(cfg, env)
-        self.track_radius = torch.tensor(cfg.params.get("track_radius", 0.8), device=self.device)
-        self.track_straight_dist = torch.tensor(cfg.params.get("track_straight_dist", 0.8), device=self.device)
-        self.num_points = cfg.params.get("num_points", 20)
+        super().__init__(cfg, env) 
+        self.track_radius = torch.tensor(cfg.params.get("track_radius", 0.8), device=self.device) 
+        self.track_straight_dist = torch.tensor(cfg.params.get("track_straight_dist", 0.8), device=self.device) 
+        self.num_points = cfg.params.get("num_points", 20) # Changed num_points from 20 to 1
 
         # Pre-generate reference points and sample around them for performance
         self.reference_poses = self.generate_reference_poses()

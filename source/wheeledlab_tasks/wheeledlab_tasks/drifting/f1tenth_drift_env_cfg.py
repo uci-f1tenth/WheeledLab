@@ -23,6 +23,8 @@ from .disable_lidar import disable_all_lidars
 
 from .mdp import reset_root_state_along_track
 
+from isaaclab.sensors.contact_sensor import ContactSensorCfg 
+
 ##############################
 ###### COMMON CONSTANTS ######
 ##############################
@@ -38,14 +40,36 @@ MAX_SPEED = 3.0               # (m/s) target speed for action scaling and reward
 ###### SCENE ######
 ###################
 
+
 @configclass
 class F1TenthDriftSceneCfg(mushr_drift_cfg.MushrDriftSceneCfg):
-    # Override robot
     robot: AssetBaseCfg = F1TENTH_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    wheel_railing_sensor: ContactSensorCfg = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/wheel_.*",
+        update_period=0.1,
+        history_length=2,
+        debug_vis=True,
+        filter_prim_paths_expr=[
+            "/World/ground/terrain/Railings/railings" 
+        ]
+    )
+
+    # Sensor for wheels hitting railings
+    chassis_contact_sensor: ContactSensorCfg = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base_link",
+        update_period=0.1,
+        history_length=2,
+        debug_vis=True,
+        filter_prim_paths_expr=[
+            "/World/ground/terrain/Railings/railings"
+        ]
+    )
+
 
 #####################
 ###### EVENTS #######
 #####################
+
 
 # Reuse the drift event logic from Mushr environment, but adapt actuator targeting for 4WD
 @configclass
@@ -85,10 +109,12 @@ class F1TenthDriftEventsRandomCfg(mushr_drift_cfg.DriftEventsRandomCfg):
         params={}          
     )
 
+
 ######################
 ###### REWARDS #######
 ######################
 
+# We need to eventually edit this function
 def turn_left_go_right_f1(env, ang_vel_thresh: float = torch.pi/4):
     """
     Reward component: turning wheels left while the car's angular velocity is to the right (and vice versa).
@@ -117,6 +143,21 @@ class F1TenthDriftRewardsCfg(mushr_drift_cfg.DriftRewardsCfg):
     )
     # (Other reward terms remain identical to DriftRewardsCfg)
 
+
+    # Collision Penalties
+    term_pens = RewTerm(
+        func = mdp.rewards.is_terminated_term,
+        params={"term_keys": ["chassis_contact_with_wall"]},
+        weight = -5000.,
+    )
+
+    # term_pens = RewTerm(
+    #     func = mdp.rewards.is_terminated_term,
+    #     params={"term_keys": ["wheel_contact_with_wall"]},
+    #     weight = -5000.,
+    # )
+
+
 ########################
 ###### CURRICULUM ######
 ########################
@@ -125,22 +166,44 @@ class F1TenthDriftRewardsCfg(mushr_drift_cfg.DriftRewardsCfg):
 ###### TERMINATION #######
 ##########################
 
+@configclass
+class DriftTerminationsCfg:
+    # Added an termination condition when the car crashes into the wall 
+    chassis_contact_with_wall = DoneTerm( 
+        func=mdp.filtered_illegal_contact,
+        params={
+            "threshold": 0.1,
+            "sensor_cfg": SceneEntityCfg("chassis_contact_sensor")
+        }
+    )
+    
+    wheel_contact_with_wall = DoneTerm( 
+        func=mdp.filtered_illegal_contact,
+        params={
+            "threshold": 0.1,
+            "sensor_cfg": SceneEntityCfg("wheel_railing_sensor")
+        }
+    )
+
+
 ######################
 ###### RL ENV ########
 ######################
+
 @configclass
 class F1TenthDriftRLEnvCfg(mushr_drift_cfg.MushrDriftRLEnvCfg):
     """RL environment configuration for drifting task with the F1Tenth robot."""
 
     # Environment settings
     seed: int = 42
-    num_envs: int = 256
+    num_envs: int = 1 # Sets how many instances train in parallel 
     env_spacing: float = 0.0
 
     # MDP Components
     actions: F1Tenth4WDActionCfg = F1Tenth4WDActionCfg()          # 4WD throttle/steer actions
     rewards: F1TenthDriftRewardsCfg = F1TenthDriftRewardsCfg()       # use adapted drift rewards
     events: F1TenthDriftEventsRandomCfg = F1TenthDriftEventsRandomCfg()    # use adapted random events
+    terminations: DriftTerminationsCfg = DriftTerminationsCfg()
 
     def __post_init__(self):
         """Post initialization configuration for simulation and viewer."""

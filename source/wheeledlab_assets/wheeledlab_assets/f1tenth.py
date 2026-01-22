@@ -43,6 +43,7 @@ _ZERO_INIT_STATES = ArticulationCfg.InitialStateCfg(
 F1TENTH_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path=f"{WHEELEDLAB_ASSETS_DATA_DIR}/Robots/F1TENTH/f1tenth.usd",
+        activate_contact_sensors=True, # Activates Contact Sensor
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
             max_linear_velocity=1000.0,
@@ -62,4 +63,3 @@ F1TENTH_CFG = ArticulationCfg(
     init_state=_ZERO_INIT_STATES,
     actuators=F1TENTH_4WD_ACTUATOR_CFG,
 )
-

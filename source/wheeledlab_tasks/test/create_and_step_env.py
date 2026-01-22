@@ -22,6 +22,7 @@ import torch
 import gymnasium as gym
 
 import wheeledlab_tasks
+import omni.logs
 
 def main(task_name: str="Isaac-MushrDriftRL-v0", num_envs: int = 16, num_steps: int = 1000):
     env_cfg = parse_env_cfg(task_name, num_envs=num_envs)

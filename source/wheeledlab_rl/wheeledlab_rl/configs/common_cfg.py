@@ -56,7 +56,7 @@ class EnvSetup:
 
 @configclass
 class AgentSetup:
-    # TODO: Is this necessary?
+    # TODO: 
     entry_point: str = "rsl_rl_cfg_entry_point" # Entry point key to resolve the agent's configuration file
 
 
