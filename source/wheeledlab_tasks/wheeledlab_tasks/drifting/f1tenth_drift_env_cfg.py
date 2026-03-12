@@ -44,6 +44,7 @@ MAX_SPEED = 3.0               # (m/s) target speed for action scaling and reward
 @configclass
 class F1TenthDriftSceneCfg(mushr_drift_cfg.MushrDriftSceneCfg):
     robot: AssetBaseCfg = F1TENTH_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    # Sensor for wheel hitting railings
     wheel_railing_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/wheel_.*",
         update_period=0.1,
@@ -54,7 +55,7 @@ class F1TenthDriftSceneCfg(mushr_drift_cfg.MushrDriftSceneCfg):
         ]
     )
 
-    # Sensor for wheels hitting railings
+    # Sensor for chassis hitting railings
     chassis_contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base_link",
         update_period=0.1,
@@ -151,11 +152,11 @@ class F1TenthDriftRewardsCfg(mushr_drift_cfg.DriftRewardsCfg):
         weight = -5000.,
     )
 
-    # term_pens = RewTerm(
-    #     func = mdp.rewards.is_terminated_term,
-    #     params={"term_keys": ["wheel_contact_with_wall"]},
-    #     weight = -5000.,
-    # )
+    term_pens = RewTerm(
+        func = mdp.rewards.is_terminated_term,
+        params={"term_keys": ["wheel_contact_with_wall"]},
+        weight = -5000.,
+    )
 
 
 ########################
