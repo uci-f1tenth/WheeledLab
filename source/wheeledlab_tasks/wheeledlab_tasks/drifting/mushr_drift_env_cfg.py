@@ -159,11 +159,30 @@ class DriftEventsRandomCfg(DriftEventsCfg):
 ######################
 
 def track_progress_rate(env):
-    '''Estimate track progress by positive z-axis angular velocity around the environment'''
-    asset : RigidObject = env.scene[SceneEntityCfg("robot").name]
-    root_ang_vel = asset.data.root_link_ang_vel_w # this is different than the mdp one
-    progress_rate = root_ang_vel[..., 2]
-    return progress_rate
+    '''Compute tangential velocity along the CCW track centerline.
+    Track layout: right straight (+y), top corner (center 0,+STRAIGHT),
+    left straight (-y), bottom corner (center 0,-STRAIGHT).
+    '''
+    poses = mdp.root_pos_w(env)
+    lin_vel_w = mdp.root_lin_vel_w(env)
+
+    on_straights = torch.abs(poses[..., 1]) < STRAIGHT
+
+    # Straights: CCW tangent is +y on right (x>0) and -y on left (x<0)
+    straight_progress = torch.where(
+        poses[..., 0] > 0,
+        lin_vel_w[..., 1],   # right straight: +y
+        -lin_vel_w[..., 1],  # left straight:  -y
+    )
+
+    # Corners: CCW tangent = (-ry, rx) / |r| where r = pos - corner_center
+    corner_center_y = torch.where(poses[..., 1] > 0, STRAIGHT, -STRAIGHT)
+    rx = poses[..., 0]
+    ry = poses[..., 1] - corner_center_y
+    r_norm = torch.sqrt(rx ** 2 + ry ** 2).clamp(min=1e-6)
+    corner_progress = (-ry * lin_vel_w[..., 0] + rx * lin_vel_w[..., 1]) / r_norm
+
+    return torch.where(on_straights, straight_progress, corner_progress)
 
 def vel_dist(env, speed_target: float=MAX_SPEED, offset: float=-MAX_SPEED**2):
     lin_vel = mdp.base_lin_vel(env)
@@ -220,14 +239,13 @@ def off_track(env, straight, corner_out_radius):
 def side_slip(env, min_thresh: float, max_thresh: float, min_vel_x: float=0.5):
     vel = mdp.base_lin_vel(env)
     slip_angle = torch.abs(torch.atan2(vel[...,1], vel[...,0]))
-    valid_angle = torch.where(torch.logical_or(
-        torch.abs(vel[..., 0]) < min_vel_x, slip_angle > max_thresh),
+    # Zero out when moving too slowly or slip is below steering noise threshold
+    valid_angle = torch.where(
+        torch.logical_or(torch.abs(vel[..., 0]) < min_vel_x, slip_angle < min_thresh),
         0.0, slip_angle
     )
-    # Discount lateral vel from steering
-    valid_angle = torch.where(valid_angle < min_thresh, 0.0, valid_angle)
-    # Clamp unstable angles. Harder than zeroing for heavy, unstable vehicles
-    # valid_angle = torch.clamp(valid_angle, max=max_thresh)
+    # Clamp rather than zero above max_thresh to avoid reward discontinuity
+    valid_angle = torch.clamp(valid_angle, max=max_thresh)
     return valid_angle
 
 def turn_left_go_right(env, ang_vel_thresh: float=torch.pi/4):
