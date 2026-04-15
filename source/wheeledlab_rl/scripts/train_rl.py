@@ -16,7 +16,11 @@ import gymnasium as gym
 import os
 
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.io import dump_yaml, dump_pickle
+from isaaclab.utils.io import dump_yaml
+import pickle
+def dump_pickle(filename, data):
+    with open(filename, "wb") as f:
+        pickle.dump(data, f)
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
 
